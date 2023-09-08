@@ -1,0 +1,3 @@
+asyncio==3.4.3
+aio_pika==9.2.2
+aiormq
