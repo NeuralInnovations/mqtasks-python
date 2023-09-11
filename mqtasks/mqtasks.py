@@ -40,20 +40,50 @@ class MqTasks:
         self.__logger = logger or logging.getLogger(f"{MqTasks.__name__}.{queue_name}")
         self.__message_id_factory = message_id_factory or MqTaskMessageIdFactory()
 
+    def __log_verbose(self, msg, *args, **kwargs):
+        if self.__verbose:
+            self.__logger.debug(msg, args, **kwargs)
+
+    def __log_line(self):
+        if self.__verbose:
+            self.__logger.debug("------------------------------")
+
     async def __run_async(self, loop):
+        self.__log_verbose(f"aio_pika.connect_robust::begin connection:{self.__amqp_connection}")
         connection = await aio_pika.connect_robust(
             self.__amqp_connection, loop=loop
         )
+        self.__log_verbose(f"aio_pika.connect_robust::end connection:{self.__amqp_connection}")
+        self.__log_line()
+
         async with connection:
+
+            self.__log_verbose("connection.channel()::begin")
             channel = await connection.channel()
+            self.__log_verbose("connection.channel()::end")
+            self.__log_line()
+
             await channel.set_qos(prefetch_count=self.__prefetch_count)
+
+            self.__log_verbose(f"channel.declare_exchange::begin exchange:{self.__queue_name}")
             exchange = await channel.declare_exchange(
                 name=self.__queue_name,
                 type=ExchangeType.DIRECT,
                 auto_delete=False
             )
+            self.__log_verbose(f"channel.declare_exchange::end exchange:{self.__queue_name}")
+            self.__log_line()
+
+            self.__log_verbose(f"channel.declare_queue::begin queue:{self.__queue_name}")
             queue = await channel.declare_queue(self.__queue_name, auto_delete=False, durable=True)
+            self.__log_verbose(f"channel.declare_queue::end queue:{self.__queue_name}")
+            self.__log_line()
+
+            self.__log_verbose(f"queue.bind::begin queue:{self.__queue_name}")
             await queue.bind(exchange, self.__queue_name)
+            self.__log_verbose(f"queue.bind::end queue:{self.__queue_name}")
+            self.__log_line()
+
             async with queue.iterator() as queue_iter:
                 message: AbstractIncomingMessage
                 async for message in queue_iter:
@@ -66,9 +96,10 @@ class MqTasks:
                             exchange = await channel.get_exchange(relay_to)
                             message_id = message.message_id
 
-                            if self.__verbose:
-                                self.__logger.debug(message.headers)
-                                self.__logger.debug(message.body)
+                            self.__log_verbose(f"task {task_name}")
+                            self.__log_verbose(message.headers)
+                            self.__log_verbose(message.body)
+                            self.__log_line()
 
                             loop.create_task(register.invoke_async(
                                 MqTaskContext(
