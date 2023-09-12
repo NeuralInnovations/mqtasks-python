@@ -44,8 +44,8 @@ class MqTasks:
     def __if_log(self):
         return self.__logger.isEnabledFor(self.__logging_level)
 
-    def __log(self, msg, *args, **kwargs):
-        self.__logger.log(self.__logging_level, msg, args, **kwargs)
+    def __log(self, msg):
+        self.__logger.log(self.__logging_level, msg)
 
     def __log_line(self):
         self.__logger.log(self.__logging_level, "------------------------------")
