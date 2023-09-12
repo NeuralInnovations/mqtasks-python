@@ -123,5 +123,6 @@ class MqTasksChannel:
         await response_queue.unbind(response_exchange)
         await response_queue.delete()
         await response_exchange.delete()
+        await channel.close()
 
         return response
