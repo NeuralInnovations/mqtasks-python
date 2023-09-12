@@ -22,6 +22,7 @@ class MqTasks:
     __loop: AbstractEventLoop
     __prefetch_count: int
     __message_id_factory: MqTaskMessageIdFactory
+    __logging_level: int
 
     def __init__(
             self,
@@ -29,68 +30,70 @@ class MqTasks:
             queue_name: str,
             prefetch_count: int = 1,
             logger: Logger | None = None,
-            message_id_factory: MqTaskMessageIdFactory | None = None
+            message_id_factory: MqTaskMessageIdFactory | None = None,
+            logging_level: int = logging.INFO,
     ):
         self.__amqp_connection = amqp_connection
         self.__queue_name = queue_name
         self.__prefetch_count = prefetch_count
         self.__logger = logger or logging.getLogger(f"{MqTasks.__name__}.{queue_name}")
         self.__message_id_factory = message_id_factory or MqTaskMessageIdFactory()
+        self.__logging_level = logging_level
 
     @property
-    def __if_debug(self):
-        return self.__logger.isEnabledFor(logging.DEBUG)
+    def __if_log(self):
+        return self.__logger.isEnabledFor(self.__logging_level)
 
-    def __log_debug(self, msg, *args, **kwargs):
-        self.__logger.debug(msg, args, **kwargs)
+    def __log(self, msg, *args, **kwargs):
+        self.__logger.log(self.__logging_level, msg, args, **kwargs)
 
     def __log_line(self):
-        self.__logger.debug("------------------------------")
+        self.__logger.log(self.__logging_level, "------------------------------")
 
     async def __run_async(self, loop):
-        if self.__if_debug:
-            self.__log_debug(f"aio_pika.connect_robust->begin connection:{self.__amqp_connection}")
+        if self.__if_log:
+            self.__log(f"aio_pika.connect_robust->begin connection:{self.__amqp_connection}")
         connection = await aio_pika.connect_robust(
             self.__amqp_connection, loop=loop
         )
-        if self.__if_debug:
-            self.__log_debug(f"aio_pika.connect_robust->end connection:{self.__amqp_connection}")
+        if self.__if_log:
+            self.__log(f"aio_pika.connect_robust->end connection:{self.__amqp_connection}")
             self.__log_line()
 
         async with connection:
 
-            if self.__if_debug:
-                self.__log_debug("connection.channel()->begin")
+            if self.__if_log:
+                self.__log("connection.channel()->begin")
             channel = await connection.channel()
-            if self.__if_debug:
-                self.__log_debug("connection.channel()->end")
+            if self.__if_log:
+                self.__log("connection.channel()->end")
                 self.__log_line()
 
             await channel.set_qos(prefetch_count=self.__prefetch_count)
 
-            if self.__if_debug:
-                self.__log_debug(f"channel.declare_exchange->begin exchange:{self.__queue_name}")
+            if self.__if_log:
+                self.__log(f"channel.declare_exchange->begin exchange:{self.__queue_name}")
             exchange = await channel.declare_exchange(
                 name=self.__queue_name,
                 type=ExchangeType.DIRECT,
                 auto_delete=False
             )
-            if self.__if_debug:
-                self.__log_debug(f"channel.declare_exchange->end exchange:{self.__queue_name}")
+            if self.__if_log:
+                self.__log(f"channel.declare_exchange->end exchange:{self.__queue_name}")
                 self.__log_line()
 
-            if self.__if_debug:
-                self.__log_debug(f"channel.declare_queue->begin queue:{self.__queue_name}")
+            if self.__if_log:
+                self.__log(f"channel.declare_queue->begin queue:{self.__queue_name}")
             queue = await channel.declare_queue(self.__queue_name, auto_delete=False, durable=True)
-            if self.__if_debug:
-                self.__log_debug(f"channel.declare_queue->end queue:{self.__queue_name}")
+            if self.__if_log:
+                self.__log(f"channel.declare_queue->end queue:{self.__queue_name}")
                 self.__log_line()
 
-            if self.__if_debug:
-                self.__log_debug(f"queue.bind->begin queue:{self.__queue_name}")
+            if self.__if_log:
+                self.__log(f"queue.bind->begin queue:{self.__queue_name}")
             await queue.bind(exchange, self.__queue_name)
-            if self.__if_debug:
-                self.__log_debug(f"queue.bind->end queue:{self.__queue_name}")
+            if self.__if_log:
+                self.__log(f"queue.bind->end queue:{self.__queue_name}")
                 self.__log_line()
 
             async with queue.iterator() as queue_iter:
@@ -105,10 +108,10 @@ class MqTasks:
                             exchange = await channel.get_exchange(relay_to)
                             message_id = message.message_id
 
-                            if self.__if_debug:
-                                self.__log_debug(f"task {task_name}")
-                                self.__log_debug(message.headers)
-                                self.__log_debug(message.body)
+                            if self.__if_log:
+                                self.__log(f"task {task_name}")
+                                self.__log(message.headers)
+                                self.__log(message.body)
                                 self.__log_line()
 
                             loop.create_task(register.invoke_async(
