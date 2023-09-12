@@ -1,5 +1,6 @@
 import inspect
 import json
+import logging
 
 from aio_pika import Message
 
@@ -17,8 +18,8 @@ class MqTaskRegister:
         self.name = name
         self.func = func
 
-    async def invoke_async(self, ctx: MqTaskContext, verbose: bool):
-        if verbose:
+    async def invoke_async(self, ctx: MqTaskContext):
+        if ctx.logger.isEnabledFor(logging.DEBUG):
             ctx.logger.debug("______________________________________________")
             ctx.logger.debug(f"invoke begin task:{ctx.name} with_id:{ctx.id}")
 
@@ -50,6 +51,6 @@ class MqTaskRegister:
             routing_key=ctx.exchange.name,
         )
 
-        if verbose:
+        if ctx.logger.isEnabledFor(logging.DEBUG):
             ctx.logger.debug(f"invoke end task:{ctx.name} with_id:{ctx.id} result:{func_result}")
             ctx.logger.debug("--------------------------------------------")
