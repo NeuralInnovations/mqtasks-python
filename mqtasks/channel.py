@@ -1,17 +1,21 @@
+import dataclasses
 import json
 from asyncio import AbstractEventLoop
+from dataclasses import is_dataclass, asdict
 from logging import Logger
-from typing import Callable
+from typing import Callable, Any
 
 import aio_pika
 from aio_pika import ExchangeType
 from aio_pika.abc import AbstractRobustConnection, AbstractRobustChannel, AbstractIncomingMessage
+from pydantic import BaseModel
 
 from mqtasks.body import MqTaskBody
 from mqtasks.headers import MqTaskHeaders
 from mqtasks.message_id_factory import MqTaskMessageIdFactory
 from mqtasks.message import MqTaskMessage
 from mqtasks.response_types import MqTaskResponseTypes
+from mqtasks.to_json import to_json_bytes
 
 
 class MqTasksChannel:
@@ -47,17 +51,10 @@ class MqTasksChannel:
             self,
             task_name: str,
             task_id: str | None = None,
-            body: bytes | str | object | None = None,
+            body: bytes | str | object | dataclasses.dataclass | None = None,
             message_handler: Callable[[MqTaskMessage], None] | None = None,
     ) -> MqTaskMessage:
-        data: bytes = bytes()
-        if body is not None:
-            if isinstance(body, bytes):
-                data = body
-            elif isinstance(body, str):
-                data = body.encode()
-            else:
-                data = json.dumps(body).encode()
+        data: bytes = to_json_bytes(body)
 
         # async with self.__connection:
         routing_key = self.__queue_name
