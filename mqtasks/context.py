@@ -1,6 +1,4 @@
-import json
 from asyncio import AbstractEventLoop
-from dataclasses import dataclass
 from logging import Logger
 from typing import Optional
 
@@ -12,7 +10,7 @@ from mqtasks.body import MqTaskBody
 from mqtasks.headers import MqTaskHeaders
 from mqtasks.message_id_factory import MqTaskMessageIdFactory
 from mqtasks.response_types import MqTaskResponseTypes
-from mqtasks.to_json import to_json_bytes
+from mqtasks.utils import to_json_bytes
 
 
 class MqTaskContext:
@@ -57,7 +55,7 @@ class MqTaskContext:
 
     async def publish_data_async(
             self,
-            body: bytes | str | object | dataclass | None = None,
+            body: bytes | str | object | None = None,
     ) -> Optional[ConfirmationFrameType]:
         data: bytes = to_json_bytes(body)
 

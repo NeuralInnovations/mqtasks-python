@@ -1,21 +1,17 @@
-import dataclasses
-import json
 from asyncio import AbstractEventLoop
-from dataclasses import is_dataclass, asdict
 from logging import Logger
-from typing import Callable, Any
+from typing import Callable
 
 import aio_pika
 from aio_pika import ExchangeType
 from aio_pika.abc import AbstractRobustConnection, AbstractRobustChannel, AbstractIncomingMessage
-from pydantic import BaseModel
 
 from mqtasks.body import MqTaskBody
 from mqtasks.headers import MqTaskHeaders
-from mqtasks.message_id_factory import MqTaskMessageIdFactory
 from mqtasks.message import MqTaskMessage
+from mqtasks.message_id_factory import MqTaskMessageIdFactory
 from mqtasks.response_types import MqTaskResponseTypes
-from mqtasks.to_json import to_json_bytes
+from mqtasks.utils import to_json_bytes
 
 
 class MqTasksChannel:
@@ -51,7 +47,7 @@ class MqTasksChannel:
             self,
             task_name: str,
             task_id: str | None = None,
-            body: bytes | str | object | dataclasses.dataclass | None = None,
+            body: bytes | str | object | None = None,
             message_handler: Callable[[MqTaskMessage], None] | None = None,
     ) -> MqTaskMessage:
         data: bytes = to_json_bytes(body)

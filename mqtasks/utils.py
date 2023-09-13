@@ -1,11 +1,11 @@
 import json
 
-from dataclasses import dataclass, asdict, is_dataclass
+from dataclasses import asdict, is_dataclass
 
 from pydantic import BaseModel
 
 
-def to_json_bytes(body: bytes | str | object | dataclass | None = None):
+def to_json_bytes(body: bytes | str | object | None = None):
     data: bytes
     if body is not None:
         if isinstance(body, bytes):
