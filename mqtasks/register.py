@@ -7,6 +7,7 @@ from aio_pika import Message
 from mqtasks.context import MqTaskContext
 from mqtasks.headers import MqTaskHeaders
 from mqtasks.response_types import MqTaskResponseTypes
+from mqtasks.utils import to_json_bytes
 
 
 class MqTaskRegister:
@@ -29,14 +30,7 @@ class MqTaskRegister:
         else:
             func_result = self.func(ctx)
 
-        data_result: bytes | None = None
-        if func_result is not None:
-            if isinstance(func_result, str):
-                data_result = func_result.encode()
-            elif isinstance(func_result, bytes):
-                data_result = func_result
-            else:
-                data_result = json.dumps(func_result).encode()
+        data_result: bytes = to_json_bytes(func_result)
 
         await ctx.exchange.publish(
             Message(
