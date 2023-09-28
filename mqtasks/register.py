@@ -36,10 +36,10 @@ class MqTaskRegister:
             Message(
                 headers={
                     MqTaskHeaders.TASK: ctx.name,
-                    MqTaskHeaders.ID: ctx.id,
                     MqTaskHeaders.RESPONSE_TO_MESSAGE_ID: ctx.message_id,
                     MqTaskHeaders.RESPONSE_TYPE: MqTaskResponseTypes.RESPONSE
                 },
+                correlation_id=ctx.id,
                 message_id=ctx.message_id_factory.new_id(),
                 body=data_result or bytes()),
             routing_key=ctx.exchange.name,

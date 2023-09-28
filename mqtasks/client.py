@@ -6,7 +6,7 @@ import aio_pika
 from aio_pika.abc import AbstractRobustConnection
 
 from mqtasks.channel import MqTasksChannel
-from mqtasks.message_id_factory import MqTaskMessageIdFactory
+from mqtasks.message_id_factory import MqTaskMessageIdFactory, MqTaskIdFactory
 
 
 class MqTasksClient:
@@ -14,8 +14,9 @@ class MqTasksClient:
     __verbose: bool
     __loop: AbstractEventLoop
     __message_id_factory: MqTaskMessageIdFactory
+    __task_id_factory: MqTaskIdFactory
     __connection: AbstractRobustConnection | None = None
-    logger: Logger
+    __logger: Logger
 
     def __init__(
             self,
@@ -24,12 +25,18 @@ class MqTasksClient:
             verbose: bool = False,
             logger: Logger | None = None,
             message_id_generator: MqTaskMessageIdFactory | None = None,
+            task_id_factory: MqTaskIdFactory | None = None,
     ):
         self.__loop = loop
         self.__amqp_connection = amqp_connection
         self.__verbose = verbose
         self.__message_id_factory = message_id_generator or MqTaskMessageIdFactory()
-        self.logger = logger or logging.getLogger(f"{MqTasksClient.__name__}")
+        self.__task_id_factory = task_id_factory or MqTaskIdFactory()
+        self.__logger = logger or logging.getLogger(f"{MqTasksClient.__name__}")
+
+    @property
+    def logger(self) -> Logger:
+        return self.__logger
 
     async def close(self):
         if self.__connection is not None:
@@ -51,7 +58,8 @@ class MqTasksClient:
             verbose=self.__verbose,
             loop=self.__loop,
             message_id_factory=self.__message_id_factory,
-            logger=self.logger.getChild(queue_name)
+            logger=self.logger.getChild(queue_name),
+            task_id_factory=self.__task_id_factory,
         )
 
         return client

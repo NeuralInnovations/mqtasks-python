@@ -10,7 +10,7 @@ tasks = MqTasks(amqp_connection=CONNECTION, queue_name=QUEUE_NANE)
 # DECLARE THE SYNC TASK
 @tasks.task(name="hello_sync")
 def hello_sync(ctx: MqTaskContext):
-    print(f"mid:{ctx.message_id} name:{ctx.name} id:{ctx.id} relay_to:{ctx.relay_to} body:{ctx.body.as_json()}")
+    print(f"mid:{ctx.message_id} name:{ctx.name} id:{ctx.id} reply_to:{ctx.reply_to} body:{ctx.body.as_json()}")
     return {
         "message": "Hello world too!!! :)"
     }
@@ -19,7 +19,7 @@ def hello_sync(ctx: MqTaskContext):
 # DECLARE THE ASYNC TASK
 @tasks.task(name="hello_async")
 async def hello_async(ctx: MqTaskContext):
-    print(f"mid:{ctx.message_id} name:{ctx.name} id:{ctx.id} relay_to:{ctx.relay_to} body:{ctx.body.as_json()}")
+    print(f"mid:{ctx.message_id} name:{ctx.name} id:{ctx.id} reply_to:{ctx.reply_to} body:{ctx.body.as_json()}")
     # sleep
     await asyncio.sleep(1)
     return {
@@ -30,7 +30,7 @@ async def hello_async(ctx: MqTaskContext):
 # DECLARE THE ASYNC TASK
 @tasks.task(name="data_async")
 async def data_async(ctx: MqTaskContext):
-    print(f"mid:{ctx.message_id} name:{ctx.name} id:{ctx.id} relay_to:{ctx.relay_to} body:{ctx.body.as_json()}")
+    print(f"mid:{ctx.message_id} name:{ctx.name} id:{ctx.id} reply_to:{ctx.reply_to} body:{ctx.body.as_json()}")
     # sleep
     await asyncio.sleep(1)
     await ctx.publish_data_async(body={"progress": 0.2})

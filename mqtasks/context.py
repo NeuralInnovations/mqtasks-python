@@ -24,7 +24,7 @@ class MqTaskContext:
     message_id: str
     name: str
     id: str
-    relay_to: str
+    reply_to: str
     body: MqTaskBody
 
     def __init__(
@@ -38,7 +38,7 @@ class MqTaskContext:
             message_id: str,
             task_name: str,
             task_id: str,
-            relay_to: str,
+            reply_to: str,
             task_body: MqTaskBody
     ):
         self.logger = logger
@@ -50,7 +50,7 @@ class MqTaskContext:
         self.message_id = message_id
         self.name = task_name
         self.id = task_id
-        self.relay_to = relay_to
+        self.reply_to = reply_to
         self.body = task_body
 
     async def publish_data_async(
@@ -63,10 +63,10 @@ class MqTaskContext:
             Message(
                 headers={
                     MqTaskHeaders.TASK: self.name,
-                    MqTaskHeaders.ID: self.id,
                     MqTaskHeaders.RESPONSE_TO_MESSAGE_ID: self.message_id,
                     MqTaskHeaders.RESPONSE_TYPE: MqTaskResponseTypes.DATA
                 },
+                correlation_id=self.id,
                 message_id=self.message_id_factory.new_id(),
                 body=data),
             routing_key=self.exchange.name,

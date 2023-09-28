@@ -103,9 +103,9 @@ class MqTasks:
                         task_name = message.headers[MqTaskHeaders.TASK]
                         if task_name in self.__tasks:
                             register: MqTaskRegister = self.__tasks[task_name]
-                            task_id = message.headers[MqTaskHeaders.ID]
-                            relay_to = message.headers[MqTaskHeaders.RELAY_TO]
-                            exchange = await channel.get_exchange(relay_to)
+                            task_id = message.correlation_id
+                            reply_to = message.reply_to
+                            exchange = await channel.get_exchange(reply_to)
                             message_id = message.message_id
 
                             if self.__if_log:
@@ -125,7 +125,7 @@ class MqTasks:
                                     message_id=message_id,
                                     task_name=task_name,
                                     task_id=task_id,
-                                    relay_to=relay_to,
+                                    reply_to=reply_to,
                                     task_body=MqTaskBody(
                                         body=message.body, size=message.body_size
                                     )),
