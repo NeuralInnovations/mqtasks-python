@@ -76,6 +76,7 @@ class MqTasks:
             exchange = await channel.declare_exchange(
                 name=self.__queue_name,
                 type=ExchangeType.DIRECT,
+                durable=True,
                 auto_delete=False
             )
             if self.__if_log:

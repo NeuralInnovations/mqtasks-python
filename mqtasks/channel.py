@@ -74,7 +74,7 @@ class MqTasksChannel:
         # ------------------------------------------------------------
         # declare queue and exchange to response
         response_queue = await channel.declare_queue(name=task_replay_to, durable=True)
-        response_exchange = await channel.declare_exchange(name=task_replay_to, type=ExchangeType.DIRECT)
+        response_exchange = await channel.declare_exchange(name=task_replay_to, type=ExchangeType.DIRECT, durable=True)
         # bind queue to exchange
         await response_queue.bind(response_exchange)
 
