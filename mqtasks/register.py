@@ -1,5 +1,4 @@
 import inspect
-import json
 import logging
 
 from aio_pika import Message
@@ -24,7 +23,6 @@ class MqTaskRegister:
             ctx.logger.debug("______________________________________________")
             ctx.logger.debug(f"invoke begin task:{ctx.name} with_id:{ctx.id}")
 
-        func_result = None
         if inspect.iscoroutinefunction(self.func):
             func_result = await self.func(ctx)
         else:
@@ -32,8 +30,8 @@ class MqTaskRegister:
 
         data_result: bytes | None = to_json_bytes(func_result)
 
-        if ctx._exchange is not None:
-            await ctx._exchange.publish(
+        if ctx.exchange is not None:
+            await ctx.exchange.publish(
                 Message(
                     headers={
                         MqTaskHeaders.TASK: ctx.name,
@@ -41,9 +39,9 @@ class MqTaskRegister:
                         MqTaskHeaders.RESPONSE_TYPE: MqTaskResponseTypes.RESPONSE
                     },
                     correlation_id=ctx.id,
-                    message_id=ctx._message_id_factory.new_id(),
+                    message_id=ctx.message_id_factory.new_id(),
                     body=data_result or bytes()),
-                routing_key=ctx._exchange.name,
+                routing_key=ctx.routing_key,
             )
 
         if ctx.logger.isEnabledFor(logging.DEBUG):

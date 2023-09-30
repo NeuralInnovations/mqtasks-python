@@ -84,6 +84,18 @@ class MqTaskContext:
     def body(self):
         return self._body
 
+    @property
+    def message_id_factory(self):
+        return self._message_id_factory
+
+    @property
+    def routing_key(self):
+        return self._routing_key
+
+    @property
+    def exchange(self):
+        return self._exchange
+
     async def publish_data_async(
             self,
             body: bytes | str | object | None = None,
