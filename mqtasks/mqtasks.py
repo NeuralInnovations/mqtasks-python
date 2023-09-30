@@ -6,7 +6,9 @@ from logging import Logger
 import aio_pika
 import aio_pika.abc
 from aio_pika.abc import AbstractIncomingMessage, \
-    ExchangeType
+    ExchangeType, \
+    AbstractExchange, \
+    AbstractQueue
 
 from mqtasks.body import MqTaskBody
 from mqtasks.context import MqTaskContext
@@ -106,8 +108,13 @@ class MqTasks:
                             register: MqTaskRegister = self.__tasks[task_name]
                             task_id = message.correlation_id
                             reply_to = message.reply_to
-                            exchange = await channel.get_exchange(reply_to)
                             message_id = message.message_id
+
+                            reply_to_exchange: AbstractExchange | None = None
+                            reply_to_queue: AbstractQueue | None = None
+                            if reply_to is not None or reply_to != "":
+                                reply_to_exchange = await channel.get_exchange(reply_to)
+                                reply_to_queue = await channel.get_queue(reply_to)
 
                             if self.__if_log:
                                 self.__log(f"task {task_name}")
@@ -120,8 +127,8 @@ class MqTasks:
                                     logger=self.__logger,
                                     loop=self.__loop,
                                     channel=channel,
-                                    queue=queue,
-                                    exchange=exchange,
+                                    queue=reply_to_queue,
+                                    exchange=reply_to_exchange,
                                     message_id_factory=self.__message_id_factory,
                                     message_id=message_id,
                                     task_name=task_name,

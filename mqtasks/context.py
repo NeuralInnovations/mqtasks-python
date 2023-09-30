@@ -3,7 +3,7 @@ from logging import Logger
 from typing import Optional
 
 from aio_pika import Message
-from aio_pika.abc import AbstractRobustChannel, AbstractRobustQueue, AbstractExchange
+from aio_pika.abc import AbstractRobustChannel, AbstractExchange, AbstractQueue
 from aiormq.abc import ConfirmationFrameType
 
 from mqtasks.body import MqTaskBody
@@ -15,7 +15,7 @@ from mqtasks.utils import to_json_bytes
 
 class MqTaskContext:
     channel: AbstractRobustChannel
-    queue: AbstractRobustQueue
+    queue: AbstractQueue
     exchange: AbstractExchange
     loop: AbstractEventLoop
     logger: Logger
@@ -32,8 +32,8 @@ class MqTaskContext:
             logger: Logger,
             loop: AbstractEventLoop,
             channel: AbstractRobustChannel,
-            queue: AbstractRobustQueue,
-            exchange: AbstractExchange,
+            queue: AbstractQueue | None,
+            exchange: AbstractExchange | None,
             message_id_factory: MqTaskMessageIdFactory,
             message_id: str,
             task_name: str,

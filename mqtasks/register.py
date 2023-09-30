@@ -30,20 +30,21 @@ class MqTaskRegister:
         else:
             func_result = self.func(ctx)
 
-        data_result: bytes = to_json_bytes(func_result)
+        data_result: bytes | None = to_json_bytes(func_result)
 
-        await ctx.exchange.publish(
-            Message(
-                headers={
-                    MqTaskHeaders.TASK: ctx.name,
-                    MqTaskHeaders.RESPONSE_TO_MESSAGE_ID: ctx.message_id,
-                    MqTaskHeaders.RESPONSE_TYPE: MqTaskResponseTypes.RESPONSE
-                },
-                correlation_id=ctx.id,
-                message_id=ctx.message_id_factory.new_id(),
-                body=data_result or bytes()),
-            routing_key=ctx.exchange.name,
-        )
+        if ctx.exchange is not None:
+            await ctx.exchange.publish(
+                Message(
+                    headers={
+                        MqTaskHeaders.TASK: ctx.name,
+                        MqTaskHeaders.RESPONSE_TO_MESSAGE_ID: ctx.message_id,
+                        MqTaskHeaders.RESPONSE_TYPE: MqTaskResponseTypes.RESPONSE
+                    },
+                    correlation_id=ctx.id,
+                    message_id=ctx.message_id_factory.new_id(),
+                    body=data_result or bytes()),
+                routing_key=ctx.exchange.name,
+            )
 
         if ctx.logger.isEnabledFor(logging.DEBUG):
             ctx.logger.debug(f"invoke end task:{ctx.name} with_id:{ctx.id} result:{func_result}")

@@ -5,7 +5,10 @@ from dataclasses import asdict, is_dataclass
 from pydantic import BaseModel
 
 
-def to_json_bytes(body: bytes | str | object | None = None):
+def to_json_bytes(body: bytes | str | object | None = None) -> bytes | None:
+    if body is None:
+        return None
+
     data: bytes
     if body is not None:
         if isinstance(body, bytes):
