@@ -113,8 +113,16 @@ class MqTasks:
                             reply_to_exchange: AbstractExchange | None = None
                             reply_to_queue: AbstractQueue | None = None
                             if reply_to is not None or reply_to != "":
-                                reply_to_exchange = await channel.get_exchange(reply_to)
-                                reply_to_queue = await channel.get_queue(reply_to)
+                                reply_to_exchange = await channel.declare_exchange(
+                                    name=reply_to,
+                                    durable=True,
+                                    type=ExchangeType.DIRECT,
+                                    auto_delete=False
+                                )
+                                reply_to_queue = await channel.declare_queue(
+                                    name=reply_to,
+                                    durable=True
+                                )
 
                             if self.__if_log:
                                 self.__log(f"task {task_name}")
