@@ -112,7 +112,7 @@ class MqTasks:
 
                             reply_to_exchange: AbstractExchange | None = None
                             reply_to_queue: AbstractQueue | None = None
-                            if reply_to is not None or reply_to != "":
+                            if reply_to is not None and reply_to != "":
                                 reply_to_exchange = await channel.declare_exchange(
                                     name=reply_to,
                                     durable=True,
