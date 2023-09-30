@@ -106,9 +106,9 @@ class MqTasks:
                         task_name = message.headers[MqTaskHeaders.TASK]
                         if task_name in self.__tasks:
                             register: MqTaskRegister = self.__tasks[task_name]
-                            task_id = message.correlation_id
-                            reply_to = message.reply_to
-                            message_id = message.message_id
+                            task_id: str | None = message.correlation_id
+                            reply_to: str | None = message.reply_to
+                            message_id: str | None = message.message_id
 
                             reply_to_exchange: AbstractExchange | None = None
                             reply_to_queue: AbstractQueue | None = None
@@ -137,6 +137,7 @@ class MqTasks:
                                     channel=channel,
                                     queue=reply_to_queue,
                                     exchange=reply_to_exchange,
+                                    routing_key=reply_to,
                                     message_id_factory=self.__message_id_factory,
                                     message_id=message_id,
                                     task_name=task_name,
@@ -157,6 +158,7 @@ class MqTasks:
 
         return func_decorator
 
+    @property
     def loop(self):
         return self.__loop
 
