@@ -162,7 +162,7 @@ class MqTasks:
     def loop(self):
         return self.__loop
 
-    def run(self, event_loop=None):
+    def run(self, event_loop: AbstractEventLoop | None = None):
         self.__loop = event_loop or asyncio.get_event_loop()
         self.__loop.run_until_complete(self.__run_async(self.__loop))
         self.__loop.close()
