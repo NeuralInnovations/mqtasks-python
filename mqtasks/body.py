@@ -33,7 +33,7 @@ class MqTaskBody:
         return self.body
 
     def as_json(self):
-        if self.__json_cache in None:
+        if self.__json_cache is None:
             self.__json_cache = json.loads(self.as_string())
         return self.__json_cache
 
