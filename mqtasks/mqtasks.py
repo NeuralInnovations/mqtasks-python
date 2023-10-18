@@ -25,6 +25,7 @@ class MqTasks:
     __prefetch_count: int
     __message_id_factory: MqTaskMessageIdFactory
     __logging_level: int
+    __wait_invoke_task: bool = False
 
     def __init__(
             self,
@@ -34,6 +35,7 @@ class MqTasks:
             logger: Logger | None = None,
             message_id_factory: MqTaskMessageIdFactory | None = None,
             logging_level: int = logging.INFO,
+            wait_invoke_task: bool = False,
     ):
         self.__amqp_connection = amqp_connection
         self.__queue_name = queue_name
@@ -41,6 +43,7 @@ class MqTasks:
         self.__logger = logger or logging.getLogger(f"{MqTasks.__name__}.{queue_name}")
         self.__message_id_factory = message_id_factory or MqTaskMessageIdFactory()
         self.__logging_level = logging_level
+        self.__wait_invoke_task = wait_invoke_task
 
     @property
     def __if_log(self):
@@ -130,7 +133,7 @@ class MqTasks:
                                 self.__log(message.body)
                                 self.__log_line()
 
-                            loop.create_task(register.invoke_async(
+                            invoke_task = loop.create_task(register.invoke_async(
                                 MqTaskContext(
                                     logger=self.__logger,
                                     loop=self.__loop,
@@ -147,6 +150,9 @@ class MqTasks:
                                         body=message.body, size=message.body_size
                                     )),
                             ))
+
+                            if self.__wait_invoke_task:
+                                await invoke_task
 
     def task(
             self,
