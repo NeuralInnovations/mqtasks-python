@@ -170,15 +170,16 @@ class MqTasks:
                             if self.__wait_invoke_task:
                                 await invoke_task
 
-                    for msg in message_queue:
+                    while len(message_queue) != 0:
+                        msg = message_queue[0]
                         await process_message(msg)
+                        message_queue.pop(0)
 
                     async with queue.iterator() as queue_iter:
                         message: AbstractIncomingMessage
                         async for message in queue_iter:
                             async with message.process():
                                 message_queue.append(message)
-                                message = message_queue[0]
                                 await process_message(message)
                                 message_queue.pop(0)
 
