@@ -5,10 +5,13 @@ from logging import Logger
 
 import aio_pika
 import aio_pika.abc
-from aio_pika.abc import AbstractIncomingMessage, \
-    ExchangeType, \
-    AbstractExchange, \
-    AbstractQueue
+from aio_pika.abc import (
+    AbstractIncomingMessage,
+    ExchangeType,
+    AbstractExchange,
+    AbstractQueue,
+    AbstractRobustConnection,
+)
 
 from mqtasks.body import MqTaskBody
 from mqtasks.context import MqTaskContext
@@ -56,56 +59,65 @@ class MqTasks:
         self.__logger.log(self.__logging_level, "------------------------------")
 
     async def __run_async(self, loop):
-        if self.__if_log:
-            self.__log(f"aio_pika.connect_robust->begin connection:{self.__amqp_connection}")
-        connection = await aio_pika.connect_robust(
-            self.__amqp_connection, loop=loop
-        )
-        if self.__if_log:
-            self.__log(f"aio_pika.connect_robust->end connection:{self.__amqp_connection}")
-            self.__log_line()
+        connection: AbstractRobustConnection | None = None
+        message_queue: list[AbstractIncomingMessage] = []
+        is_work = True
 
-        async with connection:
+        while is_work:
+            try:
+                if self.__if_log:
+                    self.__log(f"aio_pika.connect_robust->begin connection:{self.__amqp_connection}")
+                connection = await aio_pika.connect_robust(
+                    self.__amqp_connection,
+                    loop=loop
+                )
+                if self.__if_log:
+                    self.__log(f"aio_pika.connect_robust->end connection:{self.__amqp_connection}")
+                    self.__log_line()
 
-            if self.__if_log:
-                self.__log("connection.channel()->begin")
-            channel = await connection.channel()
-            if self.__if_log:
-                self.__log("connection.channel()->end")
-                self.__log_line()
+                async with connection:
 
-            await channel.set_qos(prefetch_count=self.__prefetch_count)
+                    if self.__if_log:
+                        self.__log("connection.channel()->begin")
+                    channel = await connection.channel()
+                    if self.__if_log:
+                        self.__log("connection.channel()->end")
+                        self.__log_line()
 
-            if self.__if_log:
-                self.__log(f"channel.declare_exchange->begin exchange:{self.__queue_name}")
-            exchange = await channel.declare_exchange(
-                name=self.__queue_name,
-                type=ExchangeType.DIRECT,
-                durable=True,
-                auto_delete=False
-            )
-            if self.__if_log:
-                self.__log(f"channel.declare_exchange->end exchange:{self.__queue_name}")
-                self.__log_line()
+                    await channel.set_qos(prefetch_count=self.__prefetch_count)
 
-            if self.__if_log:
-                self.__log(f"channel.declare_queue->begin queue:{self.__queue_name}")
-            queue = await channel.declare_queue(self.__queue_name, auto_delete=False, durable=True)
-            if self.__if_log:
-                self.__log(f"channel.declare_queue->end queue:{self.__queue_name}")
-                self.__log_line()
+                    if self.__if_log:
+                        self.__log(f"channel.declare_exchange->begin exchange:{self.__queue_name}")
+                    exchange = await channel.declare_exchange(
+                        name=self.__queue_name,
+                        type=ExchangeType.DIRECT,
+                        durable=True,
+                        auto_delete=False
+                    )
+                    if self.__if_log:
+                        self.__log(f"channel.declare_exchange->end exchange:{self.__queue_name}")
+                        self.__log_line()
 
-            if self.__if_log:
-                self.__log(f"queue.bind->begin queue:{self.__queue_name}")
-            await queue.bind(exchange, self.__queue_name)
-            if self.__if_log:
-                self.__log(f"queue.bind->end queue:{self.__queue_name}")
-                self.__log_line()
+                    if self.__if_log:
+                        self.__log(f"channel.declare_queue->begin queue:{self.__queue_name}")
+                    queue = await channel.declare_queue(self.__queue_name, auto_delete=False, durable=True)
+                    if self.__if_log:
+                        self.__log(f"channel.declare_queue->end queue:{self.__queue_name}")
+                        self.__log_line()
 
-            async with queue.iterator() as queue_iter:
-                message: AbstractIncomingMessage
-                async for message in queue_iter:
-                    async with message.process():
+                    if self.__if_log:
+                        self.__log(f"queue.bind->begin queue:{self.__queue_name}")
+                    await queue.bind(exchange, self.__queue_name)
+                    if self.__if_log:
+                        self.__log(f"queue.bind->end queue:{self.__queue_name}")
+                        self.__log_line()
+
+                    def consume(msg: AbstractIncomingMessage):
+                        pass
+
+                    await queue.consume(callback=consume, no_ack=False)
+
+                    async def process_message(message: AbstractIncomingMessage):
                         task_name = message.headers[MqTaskHeaders.TASK]
                         if task_name in self.__tasks:
                             register: MqTaskRegister = self.__tasks[task_name]
@@ -153,6 +165,27 @@ class MqTasks:
 
                             if self.__wait_invoke_task:
                                 await invoke_task
+
+                    for msg in message_queue:
+                        await process_message(msg)
+
+                    async with queue.iterator() as queue_iter:
+                        message: AbstractIncomingMessage
+                        async for message in queue_iter:
+                            async with message.process():
+                                message_queue.append(message)
+                                await process_message(message_queue.pop(0))
+
+            except Exception as exc:
+                self.__logger.exception(exc)
+                try:
+                    if connection is not None:
+                        await connection.close()
+                except Exception as c_exc:
+                    self.__logger.exception(c_exc)
+                    pass
+
+                await asyncio.sleep(1)
 
     def task(
             self,
