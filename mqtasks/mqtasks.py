@@ -43,10 +43,14 @@ class MqTasks:
         self.__amqp_connection = amqp_connection
         self.__queue_name = queue_name
         self.__prefetch_count = prefetch_count
-        self.__logger = logger or logging.getLogger(f"{MqTasks.__name__}.{queue_name}")
+        self.__logger = logger
         self.__message_id_factory = message_id_factory or MqTaskMessageIdFactory()
         self.__logging_level = logging_level
         self.__wait_invoke_task = wait_invoke_task
+
+        if self.__logger is None:
+            self.__logger = logging.getLogger(f"{MqTasks.__name__}.{queue_name}")
+            self.__logger.setLevel(logging_level)
 
     @property
     def __if_log(self):
@@ -174,7 +178,9 @@ class MqTasks:
                         async for message in queue_iter:
                             async with message.process():
                                 message_queue.append(message)
-                                await process_message(message_queue.pop(0))
+                                message = message_queue[0]
+                                await process_message(message)
+                                message_queue.pop(0)
 
             except Exception as exc:
                 self.__logger.exception(exc)

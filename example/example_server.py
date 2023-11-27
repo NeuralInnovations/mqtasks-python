@@ -1,10 +1,17 @@
 import asyncio
+import logging
 
 from example.example_config import CONNECTION, QUEUE_NANE
 from mqtasks import MqTasks, MqTaskContext
 
+logging.basicConfig(level=logging.DEBUG)
 # CREATE NEW MESSAGE QUEUE TASK HANDLER
-tasks = MqTasks(amqp_connection=CONNECTION, queue_name=QUEUE_NANE)
+tasks = MqTasks(
+    amqp_connection=CONNECTION,
+    queue_name=QUEUE_NANE,
+    logger=logging.getLogger("SERVER"),
+    logging_level=logging.DEBUG
+)
 
 
 # DECLARE THE SYNC TASK

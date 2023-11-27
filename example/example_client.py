@@ -1,12 +1,18 @@
 import asyncio
+import logging
 
 from example.example_config import CONNECTION, QUEUE_NANE
 from mqtasks import MqTasksClient
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("CLIENT")
+logger.setLevel(logging.DEBUG)
 
 loop = asyncio.get_event_loop()
 client = MqTasksClient(
     loop=loop,
     amqp_connection=CONNECTION,
+    logger=logger,
     verbose=True
 )
 
@@ -26,6 +32,7 @@ async def main_async(task_name: str, body: str | object | None = None) -> None:
 
 loop.run_until_complete(main_async(task_name="hello_sync", body={"message": "hello sync task1"}))
 loop.run_until_complete(main_async(task_name="hello_async", body={"message": "hello async task2"}))
+# loop.run_until_complete(asyncio.sleep(3))
 loop.run_until_complete(main_async(task_name="hello_sync", body={"message": "hello sync task3"}))
 loop.run_until_complete(main_async(task_name="hello_async", body={"message": "hello async task4"}))
 
