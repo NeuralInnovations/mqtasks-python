@@ -147,6 +147,9 @@ class MqTasks:
         return lambda message: next_middleware(message, 0)
 
     async def __consume(self, message: AbstractIncomingMessage):
+        if self.__if_log:
+            self.__log(f"Consuming, message: {message}")
+
         await self.__stop_consume()
         async with message.process():
             self.__message_queue.append(message)
@@ -159,10 +162,16 @@ class MqTasks:
         await self.__start_consume()
 
     async def __start_consume(self):
+        if self.__if_log:
+            self.__log(f"Starting consuming")
+
         queue: AbstractRobustQueue = self.__queue
         self.__consumer_tag = await queue.consume(callback=self.__consume, no_ack=False)
 
     async def __stop_consume(self):
+        if self.__if_log:
+            self.__log(f"Stopping consuming")
+
         tag: ConsumerTag | None = self.__consumer_tag
         self.__consumer_tag = None
         await self.__queue.cancel(tag)
@@ -222,21 +231,27 @@ class MqTasks:
                 self.__log(f"queue.bind->end queue:{self.__queue_name}")
                 self.__log_line()
 
-            while len(self.__message_queue) != 0:
-                msg: AbstractIncomingMessage = self.__message_queue[0]
-                await self.__process_message(
-                    context=MqMessageContext(
-                        channel=channel,
-                        message=msg,
-                        wait_task=True
+            if len(self.__message_queue) != 0:
+                if self.__if_log:
+                    self.__log(f"restore messages from queue, count:{len(self.__message_queue)}")
+                while len(self.__message_queue) != 0:
+                    msg: AbstractIncomingMessage = self.__message_queue[0]
+                    await self.__process_message(
+                        context=MqMessageContext(
+                            channel=channel,
+                            message=msg,
+                            wait_task=True
+                        )
                     )
-                )
-                self.__message_queue.pop(0)
+                    self.__message_queue.pop(0)
 
             await self.__start_consume()
 
             while not connection.is_closed:
                 await asyncio.sleep(1)
+
+            if self.__if_log:
+                self.__log(f"Connection is closed")
 
     async def __run_async(self, loop: AbstractEventLoop | None):
         self.__middleware_chain = self.__build_middleware_chain(
@@ -269,7 +284,6 @@ class MqTasks:
         self.__loop = event_loop or asyncio.get_event_loop()
         self.__loop.run_until_complete(self.__run_async(self.__loop))
         self.__loop.run_forever()
-        self.__loop.close()
 
     async def run_async(self, event_loop: AbstractEventLoop | None = None):
         self.__loop = event_loop or asyncio.get_event_loop()

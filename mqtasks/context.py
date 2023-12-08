@@ -9,6 +9,7 @@ from aiormq.abc import ConfirmationFrameType
 from mqtasks.body import MqTaskBody
 from mqtasks.headers import MqTaskHeaders
 from mqtasks.message_id_factory import MqTaskMessageIdFactory
+from mqtasks.response_status import MqResponseStatus
 from mqtasks.response_types import MqTaskResponseTypes
 from mqtasks.utils import to_json_bytes
 
@@ -107,7 +108,8 @@ class MqTaskContext:
                 headers={
                     MqTaskHeaders.TASK: self._name,
                     MqTaskHeaders.RESPONSE_TO_MESSAGE_ID: self._message_id,
-                    MqTaskHeaders.RESPONSE_TYPE: MqTaskResponseTypes.DATA
+                    MqTaskHeaders.RESPONSE_TYPE: MqTaskResponseTypes.DATA,
+                    MqTaskHeaders.RESPONSE_STATUS: MqResponseStatus.SUCCESS
                 },
                 correlation_id=self._id,
                 message_id=self._message_id_factory.new_id(),
