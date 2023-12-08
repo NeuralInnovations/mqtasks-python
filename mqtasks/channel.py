@@ -10,6 +10,7 @@ from mqtasks.body import MqTaskBody
 from mqtasks.headers import MqTaskHeaders
 from mqtasks.message import MqTaskMessage
 from mqtasks.message_id_factory import MqTaskMessageIdFactory, MqTaskIdFactory
+from mqtasks.response_status import MqResponseStatus
 from mqtasks.response_types import MqTaskResponseTypes
 from mqtasks.utils import to_json_bytes
 
@@ -108,7 +109,9 @@ class MqTasksChannel:
                                     task_id=message.correlation_id,
                                     task_body=MqTaskBody(
                                         body=message.body, size=message.body_size
-                                    )))
+                                    ),
+                                    status=MqResponseStatus.parse(message.headers[MqTaskHeaders.RESPONSE_STATUS]),
+                                ))
                     elif message.headers[MqTaskHeaders.RESPONSE_TYPE] == MqTaskResponseTypes.RESPONSE:
                         response = MqTaskMessage(
                             logger=self.logger,
@@ -118,7 +121,9 @@ class MqTasksChannel:
                             task_id=message.correlation_id,
                             task_body=MqTaskBody(
                                 body=message.body, size=message.body_size
-                            ))
+                            ),
+                            status=MqResponseStatus.parse(message.headers[MqTaskHeaders.RESPONSE_STATUS]),
+                        )
                         break
 
         await response_queue.unbind(response_exchange)
