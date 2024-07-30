@@ -37,6 +37,7 @@ class MqTasks:
     __message_queue: list[AbstractIncomingMessage] = []
     __consumer_tag: ConsumerTag | None = None
     __middleware_chain: Callable[[Any], Coroutine[Any, Any, None]] | None = None
+    __is_terminated: bool = False
 
     __queue: AbstractRobustQueue
     __exchange: AbstractRobustExchange
@@ -165,8 +166,12 @@ class MqTasks:
         if self.__if_log:
             self.__log(f"Starting consuming")
 
-        queue: AbstractRobustQueue = self.__queue
-        self.__consumer_tag = await queue.consume(callback=self.__consume, no_ack=False)
+        try:
+            queue: AbstractRobustQueue = self.__queue
+            self.__consumer_tag = await queue.consume(callback=self.__consume, no_ack=False)
+        except Exception as e:
+            if self.__if_log:
+                self.__log(f"Exception:{e}")
 
     async def __stop_consume(self):
         if self.__if_log:
@@ -247,7 +252,7 @@ class MqTasks:
 
             await self.__start_consume()
 
-            while not connection.is_closed:
+            while not connection.is_closed and not self.__is_terminated:
                 await asyncio.sleep(1)
 
             if self.__if_log:
@@ -258,7 +263,15 @@ class MqTasks:
             middlewares=self.__middlewares,
             final_handler=self.__process_message
         )
-        await self.__start_connection(loop=loop)
+        while self.__is_terminated is False:
+            try:
+                await self.__start_connection(loop=loop)
+            except Exception as e:
+                if self.__if_log:
+                    self.__log(f"Exception:{e}")
+            await asyncio.sleep(2)
+            if self.__if_log:
+                self.__log("Reconnecting")
 
     def task(
             self,
@@ -288,3 +301,6 @@ class MqTasks:
     async def run_async(self, event_loop: AbstractEventLoop | None = None):
         self.__loop = event_loop or asyncio.get_event_loop()
         await self.__run_async(loop=self.__loop)
+
+    def terminate(self):
+        self.__is_terminated = True
