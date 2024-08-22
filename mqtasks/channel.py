@@ -1,8 +1,9 @@
 from asyncio import AbstractEventLoop
 from logging import Logger
-from typing import Callable
-
+from typing import Callable, Optional
+from warnings import deprecated
 import aio_pika
+import aiormq
 from aio_pika import ExchangeType
 from aio_pika.abc import AbstractRobustConnection, AbstractRobustChannel, AbstractIncomingMessage
 
@@ -12,7 +13,7 @@ from mqtasks.message import MqTaskMessage
 from mqtasks.message_id_factory import MqTaskMessageIdFactory, MqTaskIdFactory
 from mqtasks.response_status import MqResponseStatus
 from mqtasks.response_types import MqTaskResponseTypes
-from mqtasks.utils import to_json_bytes
+from mqtasks.utils import to_json_bytes, is_valid_replay_topic
 
 
 class MqTasksChannel:
@@ -50,13 +51,18 @@ class MqTasksChannel:
     def logger(self) -> Logger:
         return self.__logger
 
-    async def run_task_async(
+    async def __request_task_async(
             self,
             task_name: str,
             task_id: str | None = None,
             body: bytes | str | object | None = None,
             message_handler: Callable[[MqTaskMessage], None] | None = None,
+            replay_to: str | None = None
     ) -> MqTaskMessage:
+        if replay_to is not None:
+            if not is_valid_replay_topic(replay_to):
+                raise ValueError("replay_to is not valid topic")
+
         data: bytes = to_json_bytes(body)
 
         # async with self.__connection:
@@ -65,7 +71,7 @@ class MqTasksChannel:
 
         message_id = self.__message_id_factory.new_id()
         task_id = task_id or self.__task_id_factory.new_id()
-        task_replay_to = f"replay.{task_name}.{task_id}"
+        task_replay_to = replay_to if is_valid_replay_topic(replay_to) else f"replay.{task_name}.{task_id}"
 
         # ------------------------------------------------------------
         # get queue and exchange to request
@@ -125,6 +131,8 @@ class MqTasksChannel:
                             status=MqResponseStatus.parse(message.headers[MqTaskHeaders.RESPONSE_STATUS]),
                         )
                         break
+                    else:
+                        raise ValueError(f"response type={message.headers[MqTaskHeaders.RESPONSE_TYPE]} is not valid")
 
         await response_queue.unbind(response_exchange)
         await response_queue.delete()
@@ -132,3 +140,63 @@ class MqTasksChannel:
         await channel.close()
 
         return response
+
+    async def exec_task_async(
+            self,
+            task_name: str,
+            task_id: str | None = None,
+            body: bytes | str | object | None = None
+    ) -> Optional[aiormq.abc.ConfirmationFrameType]:
+        data: bytes = to_json_bytes(body)
+
+        routing_key = self.__queue_name
+        channel = await self.__connection.channel()
+
+        message_id = self.__message_id_factory.new_id()
+        task_id = task_id or self.__task_id_factory.new_id()
+
+        task_exchange = await channel.get_exchange(name=routing_key)
+
+        return await task_exchange.publish(
+            aio_pika.Message(
+                headers={
+                    MqTaskHeaders.TASK: task_name,
+                },
+                correlation_id=task_id,
+                message_id=message_id,
+                body=data),
+            routing_key=routing_key,
+        )
+
+    @deprecated("use request_task_async instead")
+    async def run_task_async(
+            self,
+            task_name: str,
+            task_id: str | None = None,
+            body: bytes | str | object | None = None,
+            message_handler: Callable[[MqTaskMessage], None] | None = None,
+            replay_to: str | None = None
+    ) -> MqTaskMessage:
+        return await self.__request_task_async(
+            task_name=task_name,
+            task_id=task_id,
+            body=body,
+            message_handler=message_handler,
+            replay_to=replay_to
+        )
+
+    async def request_task_async(
+            self,
+            task_name: str,
+            task_id: str | None = None,
+            body: bytes | str | object | None = None,
+            message_handler: Callable[[MqTaskMessage], None] | None = None,
+            replay_to: str | None = None
+    ) -> MqTaskMessage:
+        return await self.__request_task_async(
+            task_name=task_name,
+            task_id=task_id,
+            body=body,
+            message_handler=message_handler,
+            replay_to=replay_to
+        )

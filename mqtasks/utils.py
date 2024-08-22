@@ -32,6 +32,10 @@ class JSON:
         return data
 
 
+def is_valid_replay_topic(topic: str | None) -> bool:
+    return topic is not None and topic is str and len(topic.strip()) > 0
+
+
 def to_json_bytes(body: bytes | str | object | None = None) -> bytes | None:
     if body is None:
         return None

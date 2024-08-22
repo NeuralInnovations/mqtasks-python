@@ -48,7 +48,7 @@ client = MqTasksClient(
 channel = await client.queue(queue_name="my_queue")
 
 #
-result = await channel.run_task_async(task_name="my_task", body={"message":"hello world"})
+result = await channel.request_task_async(task_name="my_task", body={"message": "hello world"})
 
 ```
 ---

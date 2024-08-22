@@ -16,9 +16,9 @@ from mqtasks.utils import to_json_bytes
 
 class MqTaskContext:
     _channel: AbstractRobustChannel
-    _queue: AbstractQueue
-    _exchange: AbstractExchange
-    _routing_key: str
+    _queue: AbstractQueue | None
+    _exchange: AbstractExchange | None
+    _routing_key: str | None
     _loop: AbstractEventLoop
     _logger: Logger
     _message_id_factory: MqTaskMessageIdFactory
@@ -26,7 +26,7 @@ class MqTaskContext:
     _message_id: str
     _name: str
     _id: str
-    _reply_to: str
+    _reply_to: str | None
     _body: MqTaskBody
 
     def __init__(
@@ -36,12 +36,12 @@ class MqTaskContext:
             channel: AbstractRobustChannel,
             queue: AbstractQueue | None,
             exchange: AbstractExchange | None,
-            routing_key: str,
+            routing_key: str | None,
             message_id_factory: MqTaskMessageIdFactory,
             message_id: str,
             task_name: str,
             task_id: str,
-            reply_to: str,
+            reply_to: str | None,
             task_body: MqTaskBody
     ):
         self._logger = logger
@@ -58,11 +58,11 @@ class MqTaskContext:
         self._body = task_body
 
     @property
-    def logger(self):
+    def logger(self) -> Logger:
         return self._logger
 
     @property
-    def loop(self):
+    def loop(self) -> AbstractEventLoop:
         return self._loop
 
     @property
@@ -70,37 +70,45 @@ class MqTaskContext:
         return self._message_id
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def id(self):
+    def id(self) -> str:
         return self._id
 
     @property
-    def reply_to(self):
+    def reply_to(self) -> str | None:
         return self._reply_to
 
     @property
-    def body(self):
+    def body(self) -> MqTaskBody:
         return self._body
 
     @property
-    def message_id_factory(self):
+    def message_id_factory(self) -> MqTaskMessageIdFactory:
         return self._message_id_factory
 
     @property
-    def routing_key(self):
+    def routing_key(self) -> str | None:
         return self._routing_key
 
     @property
-    def exchange(self):
+    def exchange(self) -> AbstractExchange | None:
         return self._exchange
+
+    @property
+    def is_request(self) -> bool:
+        return self._exchange is not None and self._reply_to is not None
 
     async def publish_data_async(
             self,
             body: bytes | str | object | None = None,
     ) -> Optional[ConfirmationFrameType]:
+        if not self.is_request:
+            raise Exception(
+                f"Task {self.name}, id:{self.id}, message_id:{self.message_id}. It is not a request, so you can't publish data as response")
+
         data: bytes = to_json_bytes(body)
 
         return await self._exchange.publish(
@@ -113,6 +121,7 @@ class MqTaskContext:
                 },
                 correlation_id=self._id,
                 message_id=self._message_id_factory.new_id(),
-                body=data),
+                body=data
+            ),
             routing_key=self._routing_key,
         )

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from example.example_config import CONNECTION, QUEUE_NANE_01, QUEUE_NANE_02
+from example.example_config import CONNECTION, QUEUE_NANE_REQUEST_01, QUEUE_NANE_REQUEST_02, QUEUE_NANE_PUBLISH_01
 from mqtasks import MqTasksClient
 
 logging.basicConfig(level=logging.DEBUG)
@@ -17,9 +17,16 @@ client = MqTasksClient(
 )
 
 
-async def main_async(task_name: str, queue: str, body: str | object | None = None) -> None:
+async def exec_task_async(task_name: str, queue: str, body: str | object | None = None) -> None:
     channel = await client.queue(queue)
-    response = await channel.run_task_async(
+    return await channel.exec_task_async(
+        task_name=task_name,
+        body=body,
+    )
+
+async def request_task_async(task_name: str, queue: str, body: str | object | None = None) -> None:
+    channel = await client.queue(queue)
+    response = await channel.request_task_async(
         task_name=task_name,
         body=body,
         message_handler=lambda msg: print(msg)
@@ -30,14 +37,16 @@ async def main_async(task_name: str, queue: str, body: str | object | None = Non
 # ==============================================================================
 
 
-loop.run_until_complete(main_async(task_name="hello_sync", queue=QUEUE_NANE_01, body={"message": "hello sync task1"}))
-loop.run_until_complete(main_async(task_name="hello_async", queue=QUEUE_NANE_02, body={"message": "hello async task2"}))
+loop.run_until_complete(request_task_async(task_name="hello_sync", queue=QUEUE_NANE_REQUEST_01, body={"message": "hello sync task1"}))
+loop.run_until_complete(request_task_async(task_name="hello_async", queue=QUEUE_NANE_REQUEST_02, body={"message": "hello async task2"}))
 loop.run_until_complete(asyncio.sleep(3))
-loop.run_until_complete(main_async(task_name="hello_sync", queue=QUEUE_NANE_01, body={"message": "hello sync task3"}))
-loop.run_until_complete(main_async(task_name="hello_async", queue=QUEUE_NANE_02, body={"message": "hello async task4"}))
+loop.run_until_complete(request_task_async(task_name="hello_sync", queue=QUEUE_NANE_REQUEST_01, body={"message": "hello sync task3"}))
+loop.run_until_complete(request_task_async(task_name="hello_async", queue=QUEUE_NANE_REQUEST_02, body={"message": "hello async task4"}))
 
 loop.run_until_complete(
-    main_async(task_name="data_async", queue=QUEUE_NANE_01, body={"message": "async progress task"}))
+    request_task_async(task_name="data_async", queue=QUEUE_NANE_REQUEST_01, body={"message": "async progress task"}))
+
+loop.run_until_complete(exec_task_async(task_name="task_async", queue=QUEUE_NANE_PUBLISH_01, body={"message": "publish_async"}))
 
 loop.run_until_complete(client.close())
 
