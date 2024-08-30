@@ -1,5 +1,4 @@
 import json
-
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from typing import Any
@@ -51,3 +50,15 @@ def to_json_bytes(body: bytes | str | object | None = None) -> bytes | None:
     else:
         data = bytes()
     return data
+
+
+def deprecated(
+        msg: str | None = None
+):
+    print(f"[WARNING] deprecated: {msg}")
+
+    def func_decorator(func):
+        print(f"[WARNING] deprecated {func.__name__} {msg or ''}")
+        return func
+
+    return func_decorator

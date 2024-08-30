@@ -1,7 +1,6 @@
 from asyncio import AbstractEventLoop
 from logging import Logger
 from typing import Callable, Optional
-from warnings import deprecated
 import aio_pika
 import aiormq
 from aio_pika import ExchangeType
@@ -13,7 +12,7 @@ from mqtasks.message import MqTaskMessage
 from mqtasks.message_id_factory import MqTaskMessageIdFactory, MqTaskIdFactory
 from mqtasks.response_status import MqResponseStatus
 from mqtasks.response_types import MqTaskResponseTypes
-from mqtasks.utils import to_json_bytes, is_valid_replay_topic
+from mqtasks.utils import to_json_bytes, is_valid_replay_topic, deprecated
 
 
 class MqTasksChannel:
