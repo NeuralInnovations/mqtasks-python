@@ -25,7 +25,7 @@ from mqtasks.register import MqTaskRegister
 
 
 class MqTasks:
-    __tasks:dict[str, MqTaskRegister] = dict()
+    __tasks: dict[str, MqTaskRegister] = dict()
     __amqp_connection: str
     __queue_name: str
     __loop: AbstractEventLoop
@@ -88,57 +88,60 @@ class MqTasks:
 
         task_name = context.task_name
 
-        if task_name not in self.__tasks:
-            if self.__if_log:
-                self.__log(f"task '{task_name}' is not registered")
-            raise Exception(f"task '{task_name}' is not registered")
-
+        register: MqTaskRegister
         if task_name in self.__tasks:
-            register: MqTaskRegister = self.__tasks[task_name]
-            task_id: str | None = context.task_id
-            reply_to: str | None = context.reply_to
-            message_id: str | None = context.message_id
+            register = self.__tasks[task_name]
+        else:
+            def raise_exception(ctx: MqTaskContext):
+                raise Exception(
+                    f"task:'{task_name}' is not registered, task_id:'{ctx.id}', reply_to:'{ctx.reply_to}'")
 
-            reply_to_exchange: AbstractExchange | None = None
-            reply_to_queue: AbstractQueue | None = None
-            if reply_to is not None and reply_to != "":
-                reply_to_exchange = await channel.declare_exchange(
-                    name=reply_to,
-                    durable=True,
-                    type=ExchangeType.DIRECT,
-                    auto_delete=False
-                )
-                reply_to_queue = await channel.declare_queue(
-                    name=reply_to,
-                    durable=True
-                )
+            register = MqTaskRegister(name=task_name, func=raise_exception)
 
-            if self.__if_log:
-                self.__log(f"task {task_name}")
-                self.__log(message.headers)
-                self.__log(message.body)
-                self.__log_line()
+        task_id: str | None = context.task_id
+        reply_to: str | None = context.reply_to
+        message_id: str | None = context.message_id
 
-            invoke_task = self.loop.create_task(register.invoke_async(
-                MqTaskContext(
-                    logger=self.__logger,
-                    loop=self.__loop,
-                    channel=channel,
-                    queue=reply_to_queue,
-                    exchange=reply_to_exchange,
-                    routing_key=reply_to,
-                    message_id_factory=self.__message_id_factory,
-                    message_id=message_id,
-                    task_name=task_name,
-                    task_id=task_id,
-                    reply_to=reply_to,
-                    task_body=MqTaskBody(
-                        body=message.body, size=message.body_size
-                    )),
-            ))
+        reply_to_exchange: AbstractExchange | None = None
+        reply_to_queue: AbstractQueue | None = None
+        if reply_to is not None and reply_to != "":
+            reply_to_exchange = await channel.declare_exchange(
+                name=reply_to,
+                durable=True,
+                type=ExchangeType.DIRECT,
+                auto_delete=False
+            )
+            reply_to_queue = await channel.declare_queue(
+                name=reply_to,
+                durable=True
+            )
 
-            if self.__wait_invoke_task or wait_task:
-                await invoke_task
+        if self.__if_log:
+            self.__log(f"task {task_name}")
+            self.__log(message.headers)
+            self.__log(message.body)
+            self.__log_line()
+
+        invoke_task = self.loop.create_task(register.invoke_async(
+            MqTaskContext(
+                logger=self.__logger,
+                loop=self.__loop,
+                channel=channel,
+                queue=reply_to_queue,
+                exchange=reply_to_exchange,
+                routing_key=reply_to,
+                message_id_factory=self.__message_id_factory,
+                message_id=message_id,
+                task_name=task_name,
+                task_id=task_id,
+                reply_to=reply_to,
+                task_body=MqTaskBody(
+                    body=message.body, size=message.body_size
+                )),
+        ))
+
+        if self.__wait_invoke_task or wait_task:
+            await invoke_task
 
     def __build_middleware_chain(
             self,

@@ -48,6 +48,8 @@ loop.run_until_complete(
 
 loop.run_until_complete(exec_task_async(task_name="task_async", queue=QUEUE_NANE_PUBLISH_01, body={"message": "publish_async"}))
 
+loop.run_until_complete(request_task_async(task_name="no_task", queue=QUEUE_NANE_REQUEST_02, body={"message": "no_task"}))
+
 loop.run_until_complete(client.close())
 
 loop.close()

@@ -46,8 +46,11 @@ class MqTaskRegister:
         if has_exception:
             func_result = exception_msq
 
+        task_status = MqResponseStatus.FAILURE if has_exception else MqResponseStatus.SUCCESS
+
         if not ctx.is_request and func_result is not None:
-            ctx.logger.error(f"task:{ctx.name} with_id:{ctx.id} return value bust be None, current:{str(func_result)}")
+            ctx.logger.error(
+                f"task:{ctx.name} with_id:{ctx.id}, status:{task_status}, return value must be None, because it is not a request, current:{str(func_result)}")
 
         if ctx.is_request:
             data_result: bytes | None = to_json_bytes(func_result)
@@ -57,7 +60,7 @@ class MqTaskRegister:
                     MqTaskHeaders.TASK: ctx.name,
                     MqTaskHeaders.RESPONSE_TO_MESSAGE_ID: ctx.message_id,
                     MqTaskHeaders.RESPONSE_TYPE: MqTaskResponseTypes.RESPONSE,
-                    MqTaskHeaders.RESPONSE_STATUS: MqResponseStatus.FAILURE if has_exception else MqResponseStatus.SUCCESS
+                    MqTaskHeaders.RESPONSE_STATUS: task_status
                 }
                 if has_exception:
                     headers[MqTaskHeaders.RESPONSE_ERROR_MESSAGE] = exception_msq
@@ -73,5 +76,6 @@ class MqTaskRegister:
                 )
 
         if ctx.logger.isEnabledFor(logging.DEBUG):
-            ctx.logger.debug(f"invoke end task:{ctx.name} with_id:{ctx.id} result:{func_result}")
+            ctx.logger.debug(
+                f"invoke end task:{ctx.name}, with_id:{ctx.id}, status:{task_status.value}, result:{func_result}")
             ctx.logger.debug("--------------------------------------------")
