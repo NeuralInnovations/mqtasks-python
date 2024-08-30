@@ -25,7 +25,7 @@ from mqtasks.register import MqTaskRegister
 
 
 class MqTasks:
-    __tasks = dict()
+    __tasks:dict[str, MqTaskRegister] = dict()
     __amqp_connection: str
     __queue_name: str
     __loop: AbstractEventLoop
@@ -87,6 +87,12 @@ class MqTasks:
         wait_task: bool = context.wait_task
 
         task_name = context.task_name
+
+        if task_name not in self.__tasks:
+            if self.__if_log:
+                self.__log(f"task '{task_name}' is not registered")
+            raise Exception(f"task '{task_name}' is not registered")
+
         if task_name in self.__tasks:
             register: MqTaskRegister = self.__tasks[task_name]
             task_id: str | None = context.task_id
