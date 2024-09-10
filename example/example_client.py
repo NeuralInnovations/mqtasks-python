@@ -41,7 +41,7 @@ loop.run_until_complete(request_task_async(task_name="hello_sync", queue=QUEUE_N
 loop.run_until_complete(request_task_async(task_name="hello_async", queue=QUEUE_NANE_REQUEST_02, body={"message": "hello async task2"}))
 loop.run_until_complete(asyncio.sleep(3))
 loop.run_until_complete(request_task_async(task_name="hello_sync", queue=QUEUE_NANE_REQUEST_01, body={"message": "hello sync task3"}))
-loop.run_until_complete(request_task_async(task_name="hello_async", queue=QUEUE_NANE_REQUEST_02, body={"message": "hello async task4"}))
+loop.run_until_complete(request_task_async(task_name="hello_async", queue=QUEUE_NANE_REQUEST_02, body={"message": "Привіт, перевірка килилиці"}))
 
 loop.run_until_complete(
     request_task_async(task_name="data_async", queue=QUEUE_NANE_REQUEST_01, body={"message": "async progress task"}))

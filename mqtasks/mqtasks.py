@@ -67,6 +67,8 @@ class MqTasks:
         if self.__logger is None:
             self.__logger = logging.getLogger(f"{MqTasks.__name__}.{queue_name}")
             self.__logger.setLevel(logging_level)
+        else:
+            self.__logger = logger.getChild(f"{MqTasks.__name__}.{queue_name}")
 
     @property
     def __if_log(self):
@@ -117,9 +119,19 @@ class MqTasks:
             )
 
         if self.__if_log:
-            self.__log(f"task {task_name}")
-            self.__log(message.headers)
-            self.__log(message.body)
+            self.__log_line()
+            self.__log(f"task: {task_name}")
+            self.__log(f"task_id: {task_id}")
+            self.__log(f"reply_to: {reply_to}")
+            self.__log(f"message_id: {message_id}")
+            self.__log(f"content_encoding: {message.content_encoding}")
+            self.__log(f"content_type: {message.content_type}")
+            self.__log(f"delivery_mode: {message.delivery_mode}")
+            self.__log(f"expiration: {message.expiration}")
+            self.__log(f"priority: {message.priority}")
+            self.__log(f"headers: {str(message.headers)}")
+            self.__log("body:")
+            self.__log(message.body.decode('unicode_escape'))
             self.__log_line()
 
         invoke_task = self.loop.create_task(register.invoke_async(
