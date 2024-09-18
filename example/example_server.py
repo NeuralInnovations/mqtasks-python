@@ -69,7 +69,7 @@ async def data_async(ctx: MqTaskContext):
     }
 
 # DECLARE THE ASYNC TASK
-@publish.task(name="task_async")
+@publish.task(name="task_async", log_body=False)
 async def task_async(ctx: MqTaskContext):
     await asyncio.sleep(0)
     print(f"{'request' if ctx.is_request else 'task'} mid:{ctx.message_id} name:{ctx.name} id:{ctx.id} reply_to:{ctx.reply_to} body:{ctx.body.as_json()}")

@@ -16,10 +16,12 @@ class MqTaskRegister:
     def __init__(
             self,
             name: str,
-            func
+            func: Any,
+            log_body: bool = True
     ):
         self.name = name
         self.func = func
+        self.log_body = log_body
 
     async def invoke_async(self, ctx: MqTaskContext):
         if ctx.logger.isEnabledFor(logging.DEBUG):

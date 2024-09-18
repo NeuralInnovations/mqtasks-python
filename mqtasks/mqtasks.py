@@ -98,7 +98,7 @@ class MqTasks:
                 raise Exception(
                     f"task:'{task_name}' is not registered, task_id:'{ctx.id}', reply_to:'{ctx.reply_to}'")
 
-            register = MqTaskRegister(name=task_name, func=raise_exception)
+            register = MqTaskRegister(name=task_name, func=raise_exception, log_body=False)
 
         task_id: str | None = context.task_id
         reply_to: str | None = context.reply_to
@@ -130,8 +130,11 @@ class MqTasks:
             self.__log(f"expiration: {message.expiration}")
             self.__log(f"priority: {message.priority}")
             self.__log(f"headers: {str(message.headers)}")
-            self.__log("body:")
-            self.__log(message.body.decode('unicode_escape'))
+            if register.log_body:
+                self.__log("body:")
+                self.__log(message.body.decode('unicode_escape'))
+            else:
+                self.__log("body: log disabled")
             self.__log_line()
 
         invoke_task = self.loop.create_task(register.invoke_async(
@@ -296,10 +299,15 @@ class MqTasks:
 
     def task(
             self,
-            name: str
+            name: str,
+            log_body: bool = True
     ):
         def func_decorator(func):
-            self.__tasks[name] = MqTaskRegister(name=name, func=func)
+            self.__tasks[name] = MqTaskRegister(
+                name=name,
+                func=func,
+                log_body=log_body
+            )
             return func
 
         return func_decorator
