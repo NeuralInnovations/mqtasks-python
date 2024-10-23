@@ -70,5 +70,23 @@ result = await channel.request_task_async(task_name="my_task", body={"message": 
 - **Client**
   - ```python example_client.py```
 ---
+## Release
+make a release/x.x.x branch, up the version and commit
+
+change the minor version 0.X.0
+```bash
+./scripts/release.sh minor
+```
+
+change the patch version 0.0.X
+```bash
+./scripts/release.sh patch
+```
+
+merge the release/x.x.x branch into the master and the develop branch
+```bash
+./scripts/merge.sh
+```
+---
 ## License
 MIT License
