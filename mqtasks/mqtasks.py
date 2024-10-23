@@ -20,6 +20,7 @@ from aio_pika.abc import (
 from mqtasks.body import MqTaskBody
 from mqtasks.context import MqTaskContext
 from mqtasks.message_id_factory import MqTaskMessageIdFactory
+from mqtasks.mqtask_strategy import MqTasksConsumeStrategy
 from mqtasks.mqtasks_message_context import MqMessageContext
 from mqtasks.register import MqTaskRegister
 
@@ -38,6 +39,7 @@ class MqTasks:
     __consumer_tag: ConsumerTag | None = None
     __middleware_chain: Callable[[Any], Coroutine[Any, Any, None]] | None = None
     __is_terminated: bool = False
+    __consume_strategy: MqTasksConsumeStrategy = MqTasksConsumeStrategy.QUEUE
 
     __queue: AbstractRobustQueue
     __exchange: AbstractRobustExchange
@@ -52,6 +54,7 @@ class MqTasks:
             message_id_factory: MqTaskMessageIdFactory | None = None,
             logging_level: int = logging.INFO,
             wait_invoke_task: bool = False,
+            consume_strategy: MqTasksConsumeStrategy = MqTasksConsumeStrategy.QUEUE
     ):
         self.__amqp_connection = amqp_connection
         self.__queue_name = queue_name
@@ -63,6 +66,7 @@ class MqTasks:
         self.__middlewares = []
         self.__message_queue = []
         self.__middleware_chain = None
+        self.__consume_strategy = consume_strategy
 
         if self.__logger is None:
             self.__logger = logging.getLogger(f"{MqTasks.__name__}.{queue_name}")
@@ -175,7 +179,9 @@ class MqTasks:
         if self.__if_log:
             self.__log(f"Consuming, message: {message}")
 
-        await self.__stop_consume()
+        if self.__consume_strategy is MqTasksConsumeStrategy.QUEUE:
+            await self.__stop_consume()
+
         async with message.process():
             self.__message_queue.append(message)
             await self.__process_message(MqMessageContext(
@@ -184,7 +190,9 @@ class MqTasks:
                 wait_task=False
             ))
             self.__message_queue.remove(message)
-        await self.__start_consume()
+
+        if self.__consume_strategy is MqTasksConsumeStrategy.QUEUE:
+            await self.__start_consume()
 
     async def __start_consume(self):
         if self.__if_log:
