@@ -42,6 +42,7 @@ fi
 
 # If everything is good, proceed to merge
 echo "All checks have passed. Merging PR $PR_IDENTIFIER..."
-gh pr merge "$PR_IDENTIFIER" --merge --auto -d -r
+
+gh pr merge "$PR_IDENTIFIER" --merge --auto --delete-branch
 
 echo "PR $PR_IDENTIFIER successfully merged."
