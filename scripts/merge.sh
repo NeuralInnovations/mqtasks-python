@@ -15,7 +15,7 @@ PR_IDENTIFIER="release/${version}"
 echo "Pull request identifier: $PR_IDENTIFIER"
 
 # Fetch PR details using GitHub CLI
-pr_status=$(gh pr view "$PR_IDENTIFIER" --json state,mergeable,statusCheckRollup -q '.state')
+pr_status=$(gh pr view "$PR_IDENTIFIER" --json state,mergeable -q '.state')
 
 # Check if PR is open
 if [ "$pr_status" != "OPEN" ]; then
@@ -31,10 +31,11 @@ if [ "$mergeable" != "MERGEABLE" ]; then
     exit 1
 fi
 
-# Check the status of all checks
-all_checks_passed=$(gh pr checks "$PR_IDENTIFIER" --json status -q '.status | all(.state == "success")')
+# Fetch the status of all checks and verify that all are successful
+all_checks_passed=$(gh pr checks "$PR_IDENTIFIER" --json state -q '.[] | select(.state != "SUCCESS")')
 
-if [ "$all_checks_passed" != "true" ]; then
+# If the result is empty, it means all checks have passed
+if [ -n "$all_checks_passed" ]; then
     echo "Not all checks have passed. Cannot merge PR."
     exit 1
 fi
