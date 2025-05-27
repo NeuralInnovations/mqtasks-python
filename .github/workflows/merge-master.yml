@@ -13,12 +13,12 @@ jobs:
       # CHECK OUT CODE
       #--------------------------------------------------------------------
       - name: Check out code
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v4
       #--------------------------------------------------------------------
       # INSTALL PYTHON
       #--------------------------------------------------------------------
       - name: Set up Python
-        uses: actions/setup-python@v4.7.0
+        uses: actions/setup-python@v5
         with:
           python-version: 3.11
       #--------------------------------------------------------------------
@@ -37,7 +37,7 @@ jobs:
       # UPLOAD TO TEST PYPI
       #--------------------------------------------------------------------
       - name: Publish to Test PyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.10
+        uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
@@ -45,7 +45,7 @@ jobs:
       # UPLOAD TO PYPI
       #--------------------------------------------------------------------
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.10
+        uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
       #--------------------------------------------------------------------
